@@ -1,0 +1,6 @@
+/target/
+/apps/desktop-client/node_modules/
+/apps/desktop-client/dist/
+**/*.rs.bk
+.env
+Cargo.lock
