@@ -60,7 +60,8 @@ async fn main() {
         
         // Simulating a disconnect to test backoff logic
         warn!("Disconnected from gateway. Retrying...");
-        Err(backoff::Error::transient(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "disconnected")))
+        let err: Result<(), backoff::Error<std::io::Error>> = Err(backoff::Error::transient(std::io::Error::new(std::io::ErrorKind::ConnectionAborted, "disconnected")));
+        err
     };
 
     if let Err(e) = backoff::future::retry(backoff, connect_operation).await {
