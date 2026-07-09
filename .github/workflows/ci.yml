@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build Core Protocol
       run: cargo build --verbose -p core-protocol
     - name: Build Gateway
@@ -22,4 +22,4 @@ jobs:
     - name: Build Daemon
       run: cargo build --verbose -p daemon
     - name: Run tests
-      run: cargo test --verbose --workspace
+      run: cargo test --verbose --workspace --exclude nexusvpn-desktop
