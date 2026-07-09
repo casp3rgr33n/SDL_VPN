@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
@@ -30,8 +30,11 @@ jobs:
           npm install -D @tauri-apps/cli@^1.6.0
         
       - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: ./apps/desktop-client
+        run: npx tauri build
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          projectPath: ./apps/desktop-client
+          name: windows-installer
+          path: apps/desktop-client/src-tauri/target/release/bundle/msi/*.msi
