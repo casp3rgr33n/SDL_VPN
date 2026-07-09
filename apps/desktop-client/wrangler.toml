@@ -1,0 +1,6 @@
+name = "sdl-vpn-dashboard"
+compatibility_date = "2024-03-20"
+pages_build_output_dir = "dist"
+
+[env.production]
+# Add any production variables here if needed
