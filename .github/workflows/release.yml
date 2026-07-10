@@ -37,4 +37,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: windows-installer
-          path: apps/desktop-client/src-tauri/target/release/bundle/msi/*.msi
+          path: target/release/bundle/msi/*.msi
