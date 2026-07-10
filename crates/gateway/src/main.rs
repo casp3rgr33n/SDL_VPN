@@ -6,6 +6,8 @@ use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 use core_protocol::models::{NodeInfo, TunnelMessage};
+use core_protocol::proxy::{ProxyNode, ProxyNodeStatus, ProxyType};
+use core_protocol::subscription::{UserSubscription, SubscriptionTier};
 
 type NodeRegistry = Arc<DashMap<Uuid, NodeState>>;
 type StreamRegistry = Arc<DashMap<Uuid, tokio::sync::mpsc::Sender<Vec<u8>>>>;
@@ -13,6 +15,7 @@ type StreamRegistry = Arc<DashMap<Uuid, tokio::sync::mpsc::Sender<Vec<u8>>>>;
 #[derive(Debug)]
 pub struct NodeState {
     pub info: NodeInfo,
+    pub proxy_node: ProxyNode,
     pub last_heartbeat: std::time::Instant,
     pub tx: tokio::sync::mpsc::Sender<TunnelMessage>,
 }
@@ -40,9 +43,21 @@ async fn main() {
 
     info!("Gateway running. WebSocket on 8080. HTTP Proxy on 1080.");
     while let Ok((mut stream, _)) = proxy_listener.accept().await {
-        // Find an active node
-        if let Some(node) = node_registry.iter().next() {
-            let node_tx = node.tx.clone();
+        // Collect all nodes to find optimal
+        let mut pool = Vec::new();
+        for item in node_registry.iter() {
+            pool.push(item.proxy_node.clone());
+        }
+        
+        let mut best_tx = None;
+        if let Some(first_node) = pool.first() {
+            let optimal = first_node.get_optimal_node(&pool);
+            if let Some(state) = node_registry.get(&optimal.node_id) {
+                best_tx = Some(state.tx.clone());
+            }
+        }
+
+        if let Some(node_tx) = best_tx {
             let sr = stream_registry.clone();
             tokio::spawn(handle_proxy_client(stream, node_tx, sr));
         } else {
@@ -79,8 +94,21 @@ async fn handle_ws_client(stream: TcpStream, nodes: NodeRegistry, streams: Strea
                     if info.public_key.verify_strict(&verify_bytes, &signature).is_ok() {
                         info!("Node {} registered", info.node_id);
                         current_node_id = Some(info.node_id);
+                        
+                        let proxy_node = ProxyNode {
+                            node_id: info.node_id,
+                            region: info.country.clone(),
+                            proxy_type: ProxyType::Socks5,
+                            latency_ms: 10,
+                            current_load: 0,
+                            status: ProxyNodeStatus::Active,
+                            fallback_node_id: None,
+                            last_health_check: chrono::Utc::now(),
+                        };
+
                         nodes.insert(info.node_id, NodeState {
                             info,
+                            proxy_node,
                             last_heartbeat: std::time::Instant::now(),
                             tx: tx.clone(),
                         });
