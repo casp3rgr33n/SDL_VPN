@@ -21,5 +21,9 @@ jobs:
       run: cargo build --verbose -p gateway
     - name: Build Daemon
       run: cargo build --verbose -p daemon
-    - name: Run tests
-      run: cargo test --verbose --workspace --exclude nexusvpn-desktop
+    - name: Run Tests (5 Iterations)
+      run: |
+        for i in {1..5}; do
+          echo "Running test iteration $i..."
+          cargo test --verbose --workspace --exclude nexusvpn-desktop
+        done
